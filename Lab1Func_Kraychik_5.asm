@@ -156,4 +156,85 @@ PolyMulConst PROC		; rcx - указатель на массив a
 	m3:
 	ret
 PolyMulConst ENDP
+
+PolyZero PROC							; rcx - указатель на массив a
+										; edx - степень многочлена deg, является типом int
+	xor r8, r8							; обнуление r8, всегда является нулем
+	m1:
+		cmp edx, 0						; сравнение степени с 0
+		jl m2							; если степень меньше нуля, перейти к метке m2
+		mov [rcx+8*rdx], r8				; обнуление коэффицента многочлена
+		dec edx							; уменьшение edx на единицу
+		jmp m1							; вернкться к началу цикла
+	m2:
+	mov eax, -1							; возвращаемым значением является
+										; 32-битная -1
+	ret
+PolyZero ENDP
+
+PolyCpy PROC							; rcx - указатель на приемник (dest)
+										; rdx - указатель на источник (src)
+										; r8 - степень многочлена deg, имеет тип unsigned char
+	; сохранение регистров в памяти
+	push rsi
+	push rdi
+
+	mov r9, rcx							; копирование rcx на r9
+	mov rax, r8							; возвращаемое значение
+	mov rsi, rdx						; адрес источника
+	mov rdi, r9							; адрес приемника
+	mov rcx, r8							; счетчик
+	inc rcx								; степень на 1 меньше кол-ва коэффицентов
+	cld									; значение будет увеличиваться
+	rep movsq							; копирование массива, на rcx счетчик
+	; восстановление значений регистров
+	pop rdi
+	pop rsi
+	ret
+PolyCpy ENDP
+
+PolySum PROC							; rcx - адрес результата (sum)
+										; rdx - адрес первого многочлена (a)
+										; r8 - степень первого многолчена (deg_a)
+										; r9 - адрес второго многочлена (b)
+										; [rsp+40] - степень второго многочлена (deg_b)
+	mov eax, [rsp+40]					; теперь на rax лежит deg_b
+	cdqe								; знаковое расширение eax до rax
+	; расширение r8d до r8
+	xchg rax, r8
+	cdqe
+	xchg rax, r8
+	; теперь все используемые регистры 64-битные
+	xor r10, r10						; счетчик
+	m1:
+		cmp r8, r10						; сравнение deg_a и r10
+		jl m2							; если deg_a < r10, переход к метке m2
+		cmp rax, r10					; сравнение deg_b и r10
+		jl m2							; если deg_b < r10, переход к метке m2
+		xor r11, r11					; обнуление временной переменной r11
+		mov r11, [rdx+8*r10]			; r11 = a[i]
+		xor r11, [r9+8*r10]				; r11 += b[i]
+		mov [rcx+8*r10], r11			; sum[i] = a[i]
+		inc r10							; i++
+		jmp m1
+	m2:
+		cmp r10, r8						; сравнение i и deg_a
+		jg m3							; если i > deg_a, переход к m3
+		mov r11, [rdx+8*r10]			; r11 = a[i]
+		mov [rcx+8*r10], r11			; sum[i] = r11
+		inc r10							; i++
+		jmp m2
+	m3:
+		cmp r10, rax					; сравнение i и deg_b
+		jg m4							; если i > deg_b, переход к m4
+		mov r11, [r9+8*r10]				; r11 = b[i]
+		mov [rcx+8*r10], r11			; sum[i] = b[i]
+		inc r10							; i++
+		jmp m3
+	m4:
+	cmp rax, r8							; сравнение степеней многочленов
+	cmovl rax, r8						; если rax < r8, сделать rax возвращаемым значением
+	ret
+PolySum ENDP
+
 END

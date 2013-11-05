@@ -20,6 +20,9 @@ extern "C"
 	GF2_64 GF_Reciprocal(GF2_64 a);
 	int PolyMulX(GF2_64 *a, int deg);
 	int PolyMulConst(GF2_64 *a, int deg, GF2_64 c);
+	int PolyZero(GF2_64 *a, int deg);
+	int PolyCpy(GF2_64 *dest, GF2_64 *src, unsigned char deg);
+	int PolySum(GF2_64 *sum, GF2_64 *a, int deg_a, GF2_64 *b, int deg_b);
 }
 GF2_64 add_test(GF2_64 a, GF2_64 b)  //складывает два элемента поля
 {
@@ -88,6 +91,7 @@ int PolyMulX_test(GF2_64 *a, int deg)
 }
 int PolyMulConst_test(GF2_64 *a, int deg, GF2_64 c)
 {
+	if (c == 0) { return -1; }
 	for (int i = 0; i <= deg; i++)
 	{
 		a[i] = GF_Multiply_test(a[i], c);
@@ -100,7 +104,7 @@ int PolyZero_test(GF2_64 *a, int deg)
 	{
 		a[i] = 0;
 	}
-	return deg;
+	return -1;
 }
 int PolySum_test(GF2_64 *sum, GF2_64 *a, int deg_a, GF2_64 *b, int deg_b)
 {
@@ -153,10 +157,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	GF2_64 a1 = GF_Reciprocal_test(l);
 	GF2_64 a2 = GF_Multiply(l, a1);
 	GF2_64 x, y, z;
-	GF2_64 a[10] = { 2, 0, 8, -3, 0, 0, 0, 0, 0, 0 };
-	GF2_64 b[10] = { 1, 3, 4, 0, 0, 0, 0, 0, 0, 0 };
+	GF2_64 a[10] = { 2, 0, 8, -3, 2, 0, 0, 0, 0, 0 };
+	GF2_64 b[10] = { 1, 3, 4, 9, 1, 0, 0, 0, 0, 0 };
 	GF2_64 sum[15] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	int deg = PolyMulConst(a, -1, 3);
+	int deg = PolySum(sum, a, 2, b, 3);
 	srand((unsigned)time(NULL));
 	/*for (GF2_64 i = 0; i < 64; i++)
 	{

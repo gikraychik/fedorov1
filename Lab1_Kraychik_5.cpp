@@ -6,13 +6,14 @@
 #include "stdafx.h"
 #include <iostream>
 #include <time.h>
+#include <conio.h>
 
 typedef __int64 GF2_64;
 using namespace std;
 
 const int size = 8 * sizeof(GF2_64);  // размер в битах типа данных GF2_64
 
-extern "C"
+extern "C" // перечисленные функции написаны на языке ассемблера
 {
 	GF2_64 GF_MulX(GF2_64 a);
 	GF2_64 GF_PowX(unsigned int Power);
@@ -32,7 +33,8 @@ GF2_64 add_test(GF2_64 a, GF2_64 b)  //складывает два элемен�
 
 GF2_64 GF_MulX_test(GF2_64 a)
 {
-	return ((a << 1) ^ (a >> (size - 1)));
+	GF2_64 b = (a < 0) ? 27 : 0;
+	return (a << 1) ^ b;
 }
 GF2_64 GF_PowX_test(unsigned int Power)
 {
@@ -66,22 +68,13 @@ GF2_64 GF_Multiply_test(GF2_64 a, GF2_64 b)
 }
 GF2_64 GF_Reciprocal_test(GF2_64 a)
 {
-	GF2_64 res = 1;
-	//for (int i = 0; i < size - 1; i++)
-	for (;;)
+	GF2_64 tmp = GF_Multiply_test(a, a);
+	GF2_64 res = tmp;
+	for (int i = 1; i <= 62; i++)
 	{
-		GF2_64 tmp = GF_Multiply_test(res, a);
-		if (tmp == 1) { return res; }
-		else res = tmp;
+		tmp = GF_Multiply_test(tmp, tmp);
+		res = GF_Multiply_test(res, tmp);
 	}
-	/*for (int i = 0; i < size; i++)
-	{
-		if (res == 1)
-		{
-			int k = 0;
-		}
-		res = GF_Multiply_test(res, a);
-	}*/
 	return res;
 }
 int PolyMulX_test(GF2_64 *a, int deg)
@@ -173,14 +166,6 @@ GF2_64 random()  // возвращает случайный элемент по�
 int _tmain(int argc, _TCHAR* argv[])
 {
 	GF2_64 a_test, b_test, c_test;
-	GF2_64 l = 251;
-	GF2_64 a1 = GF_Reciprocal_test(l);
-	GF2_64 a2 = GF_Multiply(l, a1);
-	GF2_64 x, y, z;
-	GF2_64 a[10] = { 2, 0, 8, -3, 2, 0, 0, 0, 0, 0 };
-	GF2_64 b[10] = { 1, 3, 4, 4, 1, 0, 0, 0, 0, 0 };
-	GF2_64 sum[15] = { 20, 20, 20, 20, 20, 20, 20, 0, 0, 0, 0, 0, 0, 0, 0 };
-	int deglol = PolySum(sum, a, -1, b, -1);
 	srand((unsigned)time(NULL));
 	cout << "Testing field functions:" << endl;
 	for (int i = 0; i < TEST_SIZE; i++)
@@ -200,10 +185,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			cout << "Error in GF_Multiply" << endl;
 		}
-		/*if (GF_Reciprocal_test(a_test) != GF_Reciprocal(a_test))
+		if (GF_Reciprocal_test(a_test) != GF_Reciprocal(a_test))
 		{
 			cout << "Error in GF_Reciprocal" << endl;
-		}*/
+		}
 		if (i % (TEST_SIZE / 10) == 0)
 		{
 			cout << i << endl;
@@ -291,7 +276,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		delete[] a;
 		delete[] b;
 	}
-	cin >> z;
+	cout << "Press any key to continue..." << endl;
+	_getch();
 	return 0;
 }
 

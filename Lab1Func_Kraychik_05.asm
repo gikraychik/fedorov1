@@ -54,23 +54,6 @@ GF_PowX PROC							; ecx - Power (unsigned int)
 	ret
 GF_PowX ENDP
 
-; вспомогательная процедура
-; unsigned char get_bit(GF2_64 a, unsigned int b);
-; выделение бита номер b из a
-get_bit PROC							; rcx - элемент GF2_64
-										; rdx - номер бита
-	mov r8, rcx							; копирование rcx на r8
-	mov cl, dl			
-	ror r8, cl							; теперь искомый бит находится в нулевом бите
-	mov r9, r8							; копирование r8 на r9
-	; выделение нулевого бита
-	sar r8, 1
-	sal r8, 1
-	xor r8, r9							; в r8 хранится результат
-	mov rax, r8
-	ret
-get_bit ENDP
-
 ; GF2_64 GF_Multiply(GF2_64 a, GF2_64 b);
 ; умножение двух элементов поля
 GF_Multiply PROC						; rcx - a (первый элемент)
@@ -84,10 +67,14 @@ GF_Multiply PROC						; rcx - a (первый элемент)
 	; умножение нулевого бита элемента b на a 
 	mov r15, rcx						; копирование rcx на r15
 	mov r14, rdx						; копирование rdx на r14
-	mov rcx, rdx						; подготовка к вызову	
-	mov rdx, 0							; функции get_bit
-	call get_bit
-	imul r15							; результат будет содержаться только в rax, rdx обнулится
+	xor rax, rax						; обнуление rax
+	bt rdx, 0							; копирование нулевого бита rdx в флаг CF
+	setc al								; если CF == 1, записать в al единицу
+	cmp rax, 0							; сравнение rax и 0
+	mov rax, r15						; на rax записываем r15 (значение первого элемента)
+	mov rcx, 0							; обнуление rcx
+	cmove rax, rcx						; if (rax == 0) { rax = 0; }
+										; rax содержит произведение нулевого бита элемента b на элемент a
 	mov r13, rax						; r13 содержит текущее произведение
 	mov r12, r15						; r12 будет сожержать a*(x^i), где i = 0..63
 										; в данный момент i == 0
@@ -100,15 +87,15 @@ GF_Multiply PROC						; rcx - a (первый элемент)
 		mov rcx, r12					; подготовка к вызову GF_MulX
 		call GF_MulX
 		mov r12, rax					; обновление значения r12 = a*(x^rsi)
-		mov rcx, r14					; подготовка к вызову get_bit
-		mov rdx, rsi					; rcx = b, rsi - номер бита
-		call get_bit
-
-		cmp rax, 1
-		mov rax, r12
-		mov rcx, 0
-		cmovne rax, rcx
-		;imul r12						; вычисление произведения результата get_bit и r12
+		; извлечение бита номер rsi из регистра r14
+		xor rax, rax					; обнуление rax
+		bt r14, rsi						; выделение бита номер rsi из элемента r14 и его запись в флаг CF
+		setc al							; копирование флага CF на регистр al
+		; умножение элемента r12 на выделенный бит (хранится в rax)
+		cmp rax, 1						; сравнение выделенного бита (rax) с 1
+		mov rax, r12					; запишем на rax результат умножения r12 на 1 (т.е. запишем r12)
+		mov rcx, 0						; подготовка к следующей команде
+		cmovne rax, rcx					; if (rax != 1) { rax = 0; }
 		xor r13, rax					; добавление к регистру, содержащему результат
 		jmp m1
 	m2:

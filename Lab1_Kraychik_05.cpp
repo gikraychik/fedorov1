@@ -165,11 +165,12 @@ bool is_zero(GF2_64 *a, int deg_a)  // проверяет, равен ли многочлен 0 (заполнил
 GF2_64 random()  // возвращает случайный элемент поля GF2_64
 {
 	GF2_64 res = 0;
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size - 1; i++)
 	{
 		res += (::rand() % 2);
 		res = res << 1;
 	}
+	res += (::rand() % 2);
 	return res;
 }
 

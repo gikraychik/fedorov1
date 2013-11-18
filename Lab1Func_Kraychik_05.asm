@@ -103,7 +103,12 @@ GF_Multiply PROC						; rcx - a (первый элемент)
 		mov rcx, r14					; подготовка к вызову get_bit
 		mov rdx, rsi					; rcx = b, rsi - номер бита
 		call get_bit
-		imul r12						; вычисление произведения результата get_bit и r12
+
+		cmp rax, 1
+		mov rax, r12
+		mov rcx, 0
+		cmovne rax, rcx
+		;imul r12						; вычисление произведения результата get_bit и r12
 		xor r13, rax					; добавление к регистру, содержащему результат
 		jmp m1
 	m2:

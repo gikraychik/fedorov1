@@ -32,12 +32,17 @@ extern "C" // перечисленные функции написаны на языке ассемблера (см. файл Lab1F
 
 GF2_64 add_test(GF2_64 a, GF2_64 b)  //складывает два элемента поля
 {
-	return (a ^ b);
+	return (a ^ b);  // сложение в поле из двух элементов совпадает с операцией xor
 }
 
 GF2_64 GF_MulX_test(GF2_64 a) // умножение элмента поля на многочлен x
 {
-	GF2_64 b = (a < 0) ? 27 : 0;
+	/*
+		Если a < 0, то после умножения на х его необходимо факторизовать по x^64 + x^4 + x^3 + x + 1
+		При этом из-за арифметики переполнения, старший бит числа исчезнет, то есть факторизовать нужно будет по x^4 + x^3 + x + 1
+		Если a >= 0, результатом будет являться сдвиг влево на 1 разряд
+	*/
+	GF2_64 b = (a < 0) ? 27 : 0; // 27 = x^4 + x^3 + x + 1
 	return (a << 1) ^ b;
 }
 GF2_64 GF_PowX_test(unsigned int Power) // возведение x в степень Power
@@ -51,12 +56,13 @@ GF2_64 GF_PowX_test(unsigned int Power) // возведение x в степень Power
 }
 GF2_64 GF_Multiply_test(GF2_64 a, GF2_64 b)  // произведение двух элементов поля
 {
+	// Вычислим сумму произведений элемента a на каждый бит элемента b
 	GF2_64 result = 0;
 	unsigned __int64 right_bit = 0;
-	GF2_64 mul = 0;
+	GF2_64 mul = 0;  // будет содержать произведение a на x^i
 	for (int i = 0; i < size; i++)
 	{
-		right_bit = (b >> i) % 2;
+		right_bit = (b >> i) % 2;  // i-ый бит элемента b
 		if (right_bit)
 		{
 			mul = a;
@@ -66,17 +72,20 @@ GF2_64 GF_Multiply_test(GF2_64 a, GF2_64 b)  // произведение двух элементов поля
 			}
 		}
 		else { mul = 0; }
-		result = add_test(result, mul);
+		result = add_test(result, mul);  // увеличение текущей суммы на mul
 	}
 	return (GF2_64)result;
 }
 GF2_64 GF_Reciprocal_test(GF2_64 a)  // нахождение обратного элемента к элементу а
 {
-	GF2_64 tmp = GF_Multiply_test(a, a);
+	/*
+		a^(-1) = a^(2^64-2) = a^(2^0) * a^(2^1) * a^(2^2) * ... * a^(2^63)
+	*/
+	GF2_64 tmp = GF_Multiply_test(a, a); // a^(2^0)
 	GF2_64 res = tmp;
 	for (int i = 1; i <= 62; i++)
 	{
-		tmp = GF_Multiply_test(tmp, tmp);
+		tmp = GF_Multiply_test(tmp, tmp);  // a^(2^i)
 		res = GF_Multiply_test(res, tmp);
 	}
 	return res;
@@ -96,7 +105,7 @@ int PolyMulConst_test(GF2_64 *a, int deg, GF2_64 c)  // умножение многочлена а с
 	}
 	return deg;
 }
-int PolyZero_test(GF2_64 *a, int deg)  // умножение многочлена над полем GF2_64 на 0
+int PolyZero_test(GF2_64 *a, int deg)  // умножение многочлена над полем GF2_64 на 0; при этом происходит обнуление многочлена
 {
 	for (int i = 0; i <= deg; i++)
 	{
@@ -121,6 +130,7 @@ int PolySum_test(GF2_64 *sum, GF2_64 *a, int deg_a, GF2_64 *b, int deg_b)
 		sum[k] = add_test(a[i], b[j]);
 		k--;
 	}
+	// если deg_a != deg_b, необходимо скопировать оставшиеся коэффиценты в sum
 	for (int itr = i; itr >= 0; itr--)
 	{
 		sum[k] = a[itr];
@@ -179,6 +189,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	GF2_64 a_test, b_test, c_test;
 	srand((unsigned)time(NULL));
 	cout << "Testing field functions:" << endl;
+	/*
+		Далее идет тестирование функций, написанных на языке ассемблера
+		В случае ошибки, выводится соответствующее сообщение
+	*/
 	for (int i = 0; i < TEST_SIZE; i++)
 	{
 		a_test = random();
